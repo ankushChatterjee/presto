@@ -15,7 +15,7 @@ package com.facebook.presto.hive.metastore.glue;
 
 import com.facebook.airlift.stats.CounterStat;
 import com.facebook.airlift.stats.TimeStat;
-import com.facebook.presto.hive.aws.AbstractSdkMetricsCollector;
+import com.facebook.presto.hive.aws.AbstractSdkMetricsPublisher;
 import io.airlift.units.Duration;
 import org.weakref.jmx.Managed;
 import org.weakref.jmx.Nested;
@@ -210,7 +210,7 @@ public class GlueMetastoreStats
     }
 
     public static class GlueSdkClientMetricsCollector
-            extends AbstractSdkMetricsCollector
+            extends AbstractSdkMetricsPublisher
     {
         private final GlueMetastoreStats stats;
 

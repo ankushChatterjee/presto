@@ -13,8 +13,6 @@
  */
 package com.facebook.presto.hive.metastore.glue;
 
-import com.amazonaws.AmazonWebServiceRequest;
-import com.amazonaws.handlers.AsyncHandler;
 import com.facebook.airlift.stats.CounterStat;
 import com.facebook.airlift.stats.TimeStat;
 import org.weakref.jmx.Managed;
@@ -31,6 +29,28 @@ public class GlueCatalogApiStats
 {
     private final TimeStat time = new TimeStat(MILLISECONDS);
     private final CounterStat totalFailures = new CounterStat();
+
+    class MetricsAsyncHandler
+    {
+        private GlueCatalogApiStats stats;
+        private final TimeStat.BlockTimer timer;
+        public MetricsAsyncHandler(GlueCatalogApiStats stats)
+        {
+            this.stats = stats;
+            this.timer = stats.time.time();
+        }
+
+        public void onError(Throwable exception)
+        {
+            timer.close();
+            stats.recordException(exception);
+        }
+
+        public void onSuccess()
+        {
+            timer.close();
+        }
+    }
 
     public <T> T record(Supplier<T> action)
     {
@@ -54,23 +74,9 @@ public class GlueCatalogApiStats
         }
     }
 
-    public <R extends AmazonWebServiceRequest, T> AsyncHandler<R, T> metricsAsyncHandler()
+    public MetricsAsyncHandler metricsAsyncHandler()
     {
-        return new AsyncHandler<R, T>() {
-            private final TimeStat.BlockTimer timer = time.time();
-            @Override
-            public void onError(Exception exception)
-            {
-                timer.close();
-                recordException(exception);
-            }
-
-            @Override
-            public void onSuccess(R request, T result)
-            {
-                timer.close();
-            }
-        };
+        return new MetricsAsyncHandler(this);
     }
 
     @Managed
@@ -87,7 +93,7 @@ public class GlueCatalogApiStats
         return totalFailures;
     }
 
-    private void recordException(Exception e)
+    private void recordException(Throwable e)
     {
         totalFailures.update(1);
     }
